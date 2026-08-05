@@ -92,6 +92,80 @@ const getAllEvents = async (req, res) => {
 };
 
 /*
+-------------
+Get My Events Controller 
+
+Return all events created by the logged-in organizer.
+--------------
+*/
+
+const getMyEvents = async (req, res) => {
+    try {
+        const events = await Event.find({
+            organizer: req.user._id,
+        }).sort({
+            createdAt: -1,
+        });
+
+        res.status(200).json({
+            success: true,
+            count: events.length,
+            events,
+        });
+    } catch(error){
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
+/*
+-------------
+Organizer Statistics Controller
+
+Returns dashboard statistics for the logged-in organizer.
+-------------
+*/
+
+const getOrganizerStats = async (req, res) => {
+    try {
+        const events = await Event.find({
+            organizer: req.user._id,
+        });
+
+        const totalEvents = events.length;
+
+        const totalSeats = events.reduce(
+            (sum, event) => sum + event.totalSeats,
+            0
+        );
+
+        const availableSeats = events.reduce(
+            (sum, event) => sum + event.availableSeats,
+            0
+        );
+
+        res.status(200).json({
+            success: true,
+            totalEvents,
+            totalSeats,
+            availableSeats,
+        });
+    } catch(error){
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
+
+/*
 ----------
 Update Event Controller
 
@@ -172,7 +246,7 @@ const deleteEvent = async (req, res) => {
             });
         }
 
-        await Event.deleteOne();
+        await event.deleteOne();
 
         res.status(200).json({
             success: true,
@@ -192,6 +266,8 @@ const deleteEvent = async (req, res) => {
 module.exports = {
     createEvent,
     getAllEvents,
+    getMyEvents,
+    getOrganizerStats,
     updateEvent,
     deleteEvent,
 };
