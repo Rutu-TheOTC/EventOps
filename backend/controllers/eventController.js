@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Event = require("../models/Event");
 
 /*
@@ -212,6 +213,14 @@ Returns details of one event using its ID.
 
 const getSingleEvent = async (req, res) => {
     try {
+        //Check whether the Event ID is valid
+        if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Event ID.",
+            });
+        }
+
         const event = await Event.findById(req.params.id)
             .populate("organizer", "fullName email");
 
