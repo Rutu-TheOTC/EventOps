@@ -77,6 +77,7 @@ Returns all events available in the database.
 const getAllEvents = async (req, res) => {
     try{
         const events = await Event.find()
+            .select("title category venue date availableSeats organizer")
             .sort({ createdAt: -1 })
             .populate("organizer","fullName email");
 
@@ -188,6 +189,7 @@ const getPaginatedEvents = async (req, res) => {
         const totalEvents = await Event.countDocuments();
 
         const events = await Event.find()
+            .select("title category venue availableSeats organizer")
             .sort({ createdAt: -1 })
             .populate("organizer", "fullName email")
             .skip(skip)
