@@ -203,6 +203,39 @@ const getPaginatedEvents = async (req, res) => {
 };
 
 /*
+------------
+Get Single Event Controller
+
+Returns details of one event using its ID.
+------------
+*/
+
+const getSingleEvent = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id)
+            .populate("organizer", "fullName email");
+
+        if(!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Event not found.",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            event,
+        });
+    } catch(error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
+/*
 -------------
 Get My Events Controller 
 
@@ -380,6 +413,7 @@ module.exports = {
     searchEvents,
     filterEventsByCategory,
     getPaginatedEvents,
+    getSingleEvent,
     getMyEvents,
     getOrganizerStats,
     updateEvent,

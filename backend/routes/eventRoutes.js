@@ -8,6 +8,7 @@ const {
     searchEvents,
     filterEventsByCategory,
     getPaginatedEvents,
+    getSingleEvent,
     getMyEvents,
     getOrganizerStats,
     updateEvent,
@@ -41,6 +42,9 @@ Event Routes
 All event-related endpoints are defined here.
 ---------
 */
+
+//Get a single event by ID
+router.get("/:id", getSingleEvent);
 
 //Create a new event (Only authenticated users)
 router.post("/", protect, createEvent);
