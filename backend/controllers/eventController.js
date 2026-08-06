@@ -76,7 +76,9 @@ Returns all events available in the database.
 
 const getAllEvents = async (req, res) => {
     try{
-        const events = await Event.find().populate("organizer","fullName email");
+        const events = await Event.find()
+            .sort({ createdAt: -1 })
+            .populate("organizer","fullName email");
 
         res.status(200).json({
             success: true,
@@ -120,7 +122,9 @@ const searchEvents = async (req, res) => {
                     },
                 },
             ],
-        }).populate("organizer", "fullName email");
+        })
+        .sort({ createdAt: -1 })
+        .populate("organizer", "fullName email");
 
         res.status(200).json({
             success: true,
@@ -150,7 +154,9 @@ const filterEventsByCategory = async (req, res) => {
 
         const events = await Event.find({
             category,
-        }).populate("organizer", "fullName email");
+        })
+        .sort({ createdAt: -1 })
+        .populate("organizer", "fullName email");
 
         res.status(200).json({
             success: true,
@@ -182,6 +188,7 @@ const getPaginatedEvents = async (req, res) => {
         const totalEvents = await Event.countDocuments();
 
         const events = await Event.find()
+            .sort({ createdAt: -1 })
             .populate("organizer", "fullName email")
             .skip(skip)
             .limit(limit);
