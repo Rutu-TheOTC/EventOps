@@ -7,6 +7,7 @@ const {
     getAllEvents,
     searchEvents,
     filterEventsByCategory,
+    getPaginatedEvents,
     getMyEvents,
     getOrganizerStats,
     updateEvent,
@@ -23,6 +24,9 @@ router.get("/search", searchEvents);
 
 //Filter events by category
 router.get("/filter", filterEventsByCategory);
+
+//Get paginated events
+router.get("/paginate", getPaginatedEvents);
 
 //Get all events created by the logged-in organizer
 router.get("/my-events", protect, getMyEvents);
