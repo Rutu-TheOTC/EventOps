@@ -5,6 +5,8 @@ const router = express.Router();
 const { 
     createEvent, 
     getAllEvents,
+    searchEvents,
+    filterEventsByCategory,
     getMyEvents,
     getOrganizerStats,
     updateEvent,
@@ -15,6 +17,12 @@ const { protect } = require("../middleware/authMiddleware");
 
 //Get all events
 router.get("/", getAllEvents);
+
+//Search events by title or category
+router.get("/search", searchEvents);
+
+//Filter events by category
+router.get("/filter", filterEventsByCategory);
 
 //Get all events created by the logged-in organizer
 router.get("/my-events", protect, getMyEvents);

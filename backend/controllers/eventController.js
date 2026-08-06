@@ -93,6 +93,80 @@ const getAllEvents = async (req, res) => {
 
 /*
 -------------
+Search Events Controller
+
+Allow users to search events by title or category.
+-------------
+*/
+
+const searchEvents = async (req, res) => {
+    try {
+        const { keyword } = req.query;
+
+        const events = await Event.find({
+            $or: [
+                {
+                    title: {
+                        $regex: keyword || "",
+                        $options: "i",
+                    },
+                },
+
+                {
+                    category: {
+                        $regex: keyword || "",
+                        $options: "i",    
+                    },
+                },
+            ],
+        }).populate("organizer", "fullName email");
+
+        res.status(200).json({
+            success: true,
+            count: events.length,
+            events,
+        });
+    } catch(error){
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
+/*
+------------
+Filter Events By Category Controller
+
+Returns all events belonging to a specific category.
+------------
+*/
+
+const filterEventsByCategory = async (req, res) => {
+    try {
+        const { category } = req.query;
+
+        const events = await Event.find({
+            category,
+        }).populate("organizer", "fullName email");
+
+        res.status(200).json({
+            success: true,
+            count: events.length,
+            events,
+        });
+    } catch(error){
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
+/*
+-------------
 Get My Events Controller 
 
 Return all events created by the logged-in organizer.
@@ -266,6 +340,8 @@ const deleteEvent = async (req, res) => {
 module.exports = {
     createEvent,
     getAllEvents,
+    searchEvents,
+    filterEventsByCategory,
     getMyEvents,
     getOrganizerStats,
     updateEvent,
