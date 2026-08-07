@@ -76,9 +76,13 @@ Returns all events available in the database.
 
 const getAllEvents = async (req, res) => {
     try{
-        const events = await Event.find()
+        const events = await Event.find({
+            date: {
+                $gte: new Date(),
+            },
+        })
             .select("title category venue date availableSeats organizer")
-            .sort({ createdAt: -1 })
+            .sort({ date: 1 })
             .populate("organizer","fullName email");
 
         res.status(200).json({
