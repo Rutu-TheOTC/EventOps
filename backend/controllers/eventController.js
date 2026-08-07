@@ -89,11 +89,18 @@ const getAllEvents = async (req, res) => {
             const eventObject = event.toObject();
             delete eventObject.__v;
 
+            const formattedDate = new Date(event.date).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            });
+
             return {
                 ...event.toObject(),
                 isSoldOut: event.availableSeats === 0,
                 organizerName: event.organizer.fullName,
                 bookedSeats: event.totalSeats - event.availableSeats,
+                formattedDate,
             };
         });
 
