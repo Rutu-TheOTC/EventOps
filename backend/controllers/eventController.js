@@ -88,6 +88,7 @@ const getAllEvents = async (req, res) => {
         const formattedEvents = events.map((event) => ({
             ...event.toObject(),
             isSoldOut: event.availableSeats === 0,
+            organizerName: event.organizer.fullName,
         }));
 
         res.status(200).json({
