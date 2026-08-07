@@ -85,10 +85,15 @@ const getAllEvents = async (req, res) => {
             .sort({ date: 1 })
             .populate("organizer","fullName email");
 
+        const formattedEvents = events.map((event) => ({
+            ...event.toObject(),
+            isSoldOut: event.availableSeats === 0,
+        }));
+
         res.status(200).json({
             success: true,
-            count: events.length,
-            events,
+            count: formattedEvents.length,
+            events: formattedEvents,
         });
     } catch(error){
         console.error(error);
