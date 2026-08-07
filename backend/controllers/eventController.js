@@ -89,6 +89,7 @@ const getAllEvents = async (req, res) => {
             ...event.toObject(),
             isSoldOut: event.availableSeats === 0,
             organizerName: event.organizer.fullName,
+            bookedSeats: event.totalSeats - event.availableSeats,
         }));
 
         res.status(200).json({
