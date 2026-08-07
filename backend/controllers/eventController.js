@@ -242,6 +242,7 @@ const getSingleEvent = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            isBookingOpen: event.availableSeats > 0,
             event,
         });
     } catch(error) {
