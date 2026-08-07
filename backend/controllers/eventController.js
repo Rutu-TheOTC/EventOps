@@ -85,12 +85,17 @@ const getAllEvents = async (req, res) => {
             .sort({ date: 1 })
             .populate("organizer","fullName email");
 
-        const formattedEvents = events.map((event) => ({
-            ...event.toObject(),
-            isSoldOut: event.availableSeats === 0,
-            organizerName: event.organizer.fullName,
-            bookedSeats: event.totalSeats - event.availableSeats,
-        }));
+        const formattedEvents = events.map((event) => {
+            const eventObject = event.toObject();
+            delete eventObject.__v;
+
+            return {
+                ...event.toObject(),
+                isSoldOut: event.availableSeats === 0,
+                organizerName: event.organizer.fullName,
+                bookedSeats: event.totalSeats - event.availableSeats,
+            };
+        });
 
         res.status(200).json({
             success: true,
