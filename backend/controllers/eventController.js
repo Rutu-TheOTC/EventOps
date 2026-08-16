@@ -160,10 +160,33 @@ const searchEvents = async (req, res) => {
         .sort({ createdAt: -1 })
         .populate("organizer", "fullName email");
 
+        const formattedEvents = events.map((event) => {
+            const eventObject = event.toObject();
+
+            delete eventObject.__v;
+
+            const formattedDate = new Date(event.date).toLocaleDateString(
+                "en-GB",
+                {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                }
+            );
+
+            return {
+                ...eventObject,
+                isSoldOut: event.availableSeats === 0,
+                organizerName: event.organizer.fullName,
+                bookedSeats: event.totalSeats - event.availableSeats,
+                formattedDate,
+            };
+        });
+
         res.status(200).json({
             success: true,
-            count: events.length,
-            events,
+            count: formattedEvents.length,
+            events: formattedEvents,
         });
     } catch(error){
         console.error(error);
