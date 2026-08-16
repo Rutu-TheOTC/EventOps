@@ -296,12 +296,28 @@ const getSingleEvent = async (req, res) => {
             });
         }
 
+        const eventObject = event.toObject();
+
+        delete eventObject.__v;
+
+        const formattedDate = new Date(event.date).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+        });
+
+        const formattedEvent = {
+            ...eventObject,
+            isBookingOpen: event.availableSeats > 0,
+            isSoldOut: event.availableSeats === 0,
+            bookedSeats: event.totalSeats - event.availableSeats,
+            formattedDate,
+            organizerName: event.organizer.fullName,
+        };
+
         res.status(200).json({
             success: true,
-            isBookingOpen: event.availableSeats > 0,
-            createdOn: event.createdAt.toLocaleDateString(),
-            updatedOn: event.updatedAt.toLocaleDateString(),
-            event,
+            event: formattedEvent,
         });
     } catch(error) {
         console.error(error);
