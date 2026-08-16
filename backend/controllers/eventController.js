@@ -76,13 +76,23 @@ Returns all events available in the database.
 
 const getAllEvents = async (req, res) => {
     try{
+
+        const { sort } = req.query;
+        let sortOption = {};
+        
+        if(sort === "newest") {
+            sortOption = { createdAt: -1 };
+        } else if (sort === "oldest") {
+            sortOption = { createdAt: 1 };
+        }
+
         const events = await Event.find({
             date: {
                 $gte: new Date(),
             },
         })
             .select("title category venue date availableSeats organizer")
-            .sort({ date: 1 })
+            .sort(sortOption)
             .populate("organizer","fullName email");
 
         const formattedEvents = events.map((event) => {
