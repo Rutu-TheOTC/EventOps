@@ -91,7 +91,7 @@ const getAllEvents = async (req, res) => {
                 $gte: new Date(),
             },
         })
-            .select("title category venue date availableSeats organizer")
+            .select("title description category venue date totalSeats availableSeats organizer")
             .sort(sortOption)
             .populate("organizer","fullName email");
 
