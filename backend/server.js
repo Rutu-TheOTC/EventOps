@@ -1,35 +1,30 @@
-const dotenv = require("dotenv");
+// Load environment variables before importing modules that use process.env.
+require("dotenv").config();
+
 const app = require("./app");
 const connectDB = require("./config/db");
-const express = require("express");
-const cors = require("cors");
-
-// Load environment variables before using process.env
-dotenv.config();
-
-app.use(cors());
-app.use(express.json());
-
-/*
- * Establish the database connection before accepting requests.
- * If MongoDB is unavailable, connectDB() will stop the process,
- * preventing the API from running in an unusable state.
- */
-
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  try {
-    await connectDB();
+    try {
+        if (!process.env.MONGO_URI) {
+            throw new Error("MONGO_URI is missing from the backend environment.");
+        }
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Server startup failed:", error.message);
-  }
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is missing from the backend environment.");
+        }
+
+        await connectDB();
+
+        app.listen(PORT, () => {
+            console.log(`🚀 EventOps server running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Server startup failed:", error.message);
+        process.exit(1);
+    }
 };
 
 startServer();
-

@@ -62,18 +62,19 @@ async function apiRequest(path, options = {}) {
     : { message: await response.text() };
 
   if (!response.ok) {
-    if (response.status === 401 && getToken()) {
-      // Don't silently clear the session. Let the user decide whether to sign in again.
-    }
     throw new Error(data.message || `Request failed (${response.status}).`);
   }
+
   return data;
 }
 
 function formatDate(value, options = {}) {
   if (!value) return "Date to be announced";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "Date to be announced";
+
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -133,15 +134,23 @@ function EventCard({ event, index, onOpen }) {
           EVENT / {String(index + 1).padStart(2, "0")}
         </span>
       </button>
+
       <div className="event-details">
         <span className="event-date">{formatDate(event.date)}</span>
         <h3>{event.title}</h3>
         <p className="event-venue">
           ⌖ {event.venue || "Venue to be announced"}
         </p>
+
         <div className="event-card-footer">
           <span
-            className={`event-availability ${soldOut ? "availability-sold-out" : lowSeats ? "availability-low" : "availability-open"}`}
+            className={`event-availability ${
+              soldOut
+                ? "availability-sold-out"
+                : lowSeats
+                  ? "availability-low"
+                  : "availability-open"
+            }`}
           >
             {soldOut
               ? "Sold out"
@@ -149,6 +158,7 @@ function EventCard({ event, index, onOpen }) {
                 ? `Only ${available} seats left`
                 : `${available} seats available`}
           </span>
+
           <button
             className="event-arrow"
             type="button"
@@ -176,8 +186,10 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
     event.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       let data;
+
       if (isRegister) {
         data = await apiRequest("/api/auth/register", {
           method: "POST",
@@ -188,6 +200,7 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
             password,
           }),
         });
+
         // Registration endpoints may not issue a token, so sign in after registering.
         if (!data.token) {
           data = await apiRequest("/api/auth/login", {
@@ -213,10 +226,13 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
           "The server did not return a login token. Check the backend login response.",
         );
       }
+
       localStorage.setItem(TOKEN_KEY, data.token);
-      const user = data.user || data.currentUser || data;
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-      onSuccess(user);
+
+      const authenticatedUser = data.user || data.currentUser || data;
+
+      localStorage.setItem(USER_KEY, JSON.stringify(authenticatedUser));
+      onSuccess(authenticatedUser);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -228,18 +244,22 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
     <section className="auth-layout">
       <div className="auth-story">
         <span className="section-kicker">YOUR NEXT CHAPTER STARTS HERE</span>
+
         <h1>
           {isRegister
             ? "Make room for new experiences."
             : "Welcome back to your people."}
         </h1>
+
         <p>Discover events, meet your community, and make every seat count.</p>
+
         <div className="auth-art" aria-hidden="true">
-          <span> E </span>
+          <span>E</span>
           <i>✦</i>
           <b>↗</b>
         </div>
       </div>
+
       <form className="panel auth-panel" onSubmit={handleSubmit}>
         <button
           className="text-button back-link"
@@ -248,10 +268,13 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
         >
           ← Back to events
         </button>
+
         <span className="section-kicker">
           {isRegister ? "JOIN EVENTOPS" : "SIGN IN"}
         </span>
+
         <h2>{isRegister ? "Create your account" : "Good to see you again."}</h2>
+
         <p className="muted">
           {isRegister
             ? "A few details and you're in."
@@ -271,6 +294,7 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
             />
           </label>
         )}
+
         <label>
           {isRegister ? "Email address" : "Email or phone number"}
           <input
@@ -282,6 +306,7 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
             placeholder={isRegister ? "you@example.com" : "Email or phone"}
           />
         </label>
+
         {isRegister && (
           <label>
             Phone number
@@ -295,6 +320,7 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
             />
           </label>
         )}
+
         <label>
           Password
           <input
@@ -307,11 +333,13 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
             placeholder={isRegister ? "At least 6 characters" : "Your password"}
           />
         </label>
+
         {error && (
           <p className="notice notice-error" role="alert">
             {error}
           </p>
         )}
+
         <button
           className="primary-button full-width"
           type="submit"
@@ -323,6 +351,7 @@ function AuthView({ mode, onModeChange, onSuccess, onBack }) {
               ? "Create account ↗"
               : "Sign in ↗"}
         </button>
+
         <p className="auth-switch">
           {isRegister ? "Already have an account?" : "New to EventOps?"}{" "}
           <button
@@ -347,6 +376,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
     date: initialEvent?.date ? toLocalDateTimeInput(initialEvent.date) : "",
     totalSeats: initialEvent?.totalSeats ?? 30,
   });
+
   const [error, setError] = useState("");
 
   function update(field, value) {
@@ -356,14 +386,17 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
   function submit(event) {
     event.preventDefault();
     setError("");
+
     if (new Date(form.date).getTime() <= Date.now()) {
       setError("Choose a future date and time for the event.");
       return;
     }
+
     if (Number(form.totalSeats) < 1) {
       setError("Total seats must be at least 1.");
       return;
     }
+
     onSave({
       ...form,
       date: new Date(form.date).toISOString(),
@@ -380,6 +413,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           </span>
           <h2>{initialEvent ? "Edit event" : "Create an event"}</h2>
         </div>
+
         <button
           type="button"
           className="icon-button"
@@ -389,6 +423,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           ×
         </button>
       </div>
+
       <label>
         Event title
         <input
@@ -399,6 +434,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           placeholder="e.g. Product Builders Meetup"
         />
       </label>
+
       <label>
         Description
         <textarea
@@ -410,6 +446,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           placeholder="What should people know about this event?"
         />
       </label>
+
       <div className="form-grid">
         <label>
           Category
@@ -422,6 +459,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
             ))}
           </select>
         </label>
+
         <label>
           Total seats
           <input
@@ -434,6 +472,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           />
         </label>
       </div>
+
       <label>
         Venue
         <input
@@ -443,6 +482,7 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           placeholder="Venue, city"
         />
       </label>
+
       <label>
         Date and time
         <input
@@ -452,15 +492,18 @@ function EventForm({ initialEvent, onSave, onCancel, busy }) {
           required
         />
       </label>
+
       {error && (
         <p className="notice notice-error" role="alert">
           {error}
         </p>
       )}
+
       <div className="form-actions">
         <button type="button" className="secondary-button" onClick={onCancel}>
           Cancel
         </button>
+
         <button className="primary-button" type="submit" disabled={busy}>
           {busy
             ? "Saving..."
@@ -499,6 +542,9 @@ function App() {
   const [savingEvent, setSavingEvent] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
+  // Frontend role visibility. The backend still enforces actual authorization.
+  const isOrganizer = user?.role === "organizer";
+
   const flash = useCallback((message) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 4000);
@@ -507,10 +553,14 @@ function App() {
   const loadEvents = useCallback(async () => {
     setLoadingEvents(true);
     setEventsError("");
+
     try {
       const data = await apiRequest("/api/events");
-      if (!data.success || !Array.isArray(data.events))
+
+      if (!data.success || !Array.isArray(data.events)) {
         throw new Error("The server returned an unexpected events response.");
+      }
+
       setEvents(data.events);
     } catch (error) {
       setEventsError(error.message || "Unable to load events.");
@@ -525,6 +575,7 @@ function App() {
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     return [...events]
       .filter(
         (event) =>
@@ -560,10 +611,14 @@ function App() {
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+
     setUser(null);
     setMyBookings([]);
     setMyEvents([]);
+    setShowEventForm(false);
+    setEditingEvent(null);
     setView("home");
+
     flash("You've been signed out.");
   }
 
@@ -573,14 +628,26 @@ function App() {
       setView("auth");
       return;
     }
+
+    // Do not let attendee or admin accounts open the organizer workspace.
+    if (!isOrganizer) {
+      setView("home");
+      setShowEventForm(false);
+      setEditingEvent(null);
+      flash("Organizer access is available only to organizer accounts.");
+      return;
+    }
+
     setView("dashboard");
     setDashboardLoading(true);
     setDashboardError("");
+
     try {
       const [eventsData, statsData] = await Promise.all([
         apiRequest("/api/events/my-events"),
         apiRequest("/api/events/stats"),
       ]);
+
       setMyEvents(eventsData.events || []);
       setStats({
         totalEvents: statsData.totalEvents || 0,
@@ -600,9 +667,11 @@ function App() {
       setView("auth");
       return;
     }
+
     setView("bookings");
     setDashboardLoading(true);
     setDashboardError("");
+
     try {
       const data = await apiRequest("/api/bookings/my-bookings");
       setMyBookings(data.bookings || []);
@@ -615,21 +684,26 @@ function App() {
 
   async function bookSelectedEvent() {
     if (!selectedEvent) return;
+
     if (!getToken()) {
       setAuthMode("login");
       setView("auth");
       flash("Please sign in before booking an event.");
       return;
     }
+
     setActionBusy(true);
+
     try {
-      // If your backend booking route uses a different URL, adjust this single request.
       const data = await apiRequest("/api/bookings", {
         method: "POST",
         body: JSON.stringify({ eventId: selectedEvent._id }),
       });
+
       flash(data.message || "Booking request completed.");
+
       await loadEvents();
+
       const refreshed = await apiRequest(`/api/events/${selectedEvent._id}`);
       setSelectedEvent(refreshed.event || refreshed);
     } catch (error) {
@@ -641,13 +715,18 @@ function App() {
 
   async function cancelBooking(booking) {
     if (!window.confirm("Cancel this booking?")) return;
+
     setActionBusy(true);
+
     try {
       const bookingId = booking._id || booking.id;
+
       const data = await apiRequest(`/api/bookings/${bookingId}/cancel`, {
         method: "PATCH",
       });
+
       flash(data.message || "Booking cancelled.");
+
       await openBookings();
       await loadEvents();
     } catch (error) {
@@ -658,20 +737,34 @@ function App() {
   }
 
   async function saveEvent(formData) {
+    // Defense in depth: don't even send an organizer write request from an attendee UI.
+    if (!isOrganizer || !getToken()) {
+      flash("Only organizer accounts can create or update events.");
+      setShowEventForm(false);
+      setEditingEvent(null);
+      setView("home");
+      return;
+    }
+
     setSavingEvent(true);
+
     try {
       const path = editingEvent
         ? `/api/events/${editingEvent._id}`
         : "/api/events";
+
       const data = await apiRequest(path, {
         method: editingEvent ? "PUT" : "POST",
         body: JSON.stringify(formData),
       });
+
       flash(
         data.message || (editingEvent ? "Event updated." : "Event created."),
       );
+
       setShowEventForm(false);
       setEditingEvent(null);
+
       await openDashboard();
       await loadEvents();
     } catch (error) {
@@ -682,14 +775,24 @@ function App() {
   }
 
   async function deleteEvent(event) {
-    if (!window.confirm(`Delete "${event.title}"? This cannot be undone.`))
+    if (!isOrganizer || !getToken()) {
+      flash("Only organizer accounts can delete events.");
       return;
+    }
+
+    if (!window.confirm(`Delete "${event.title}"? This cannot be undone.`)) {
+      return;
+    }
+
     setActionBusy(true);
+
     try {
       const data = await apiRequest(`/api/events/${event._id}`, {
         method: "DELETE",
       });
+
       flash(data.message || "Event deleted.");
+
       await openDashboard();
       await loadEvents();
     } catch (error) {
@@ -704,12 +807,14 @@ function App() {
     setSelectedEvent(null);
     setShowEventForm(false);
     setEditingEvent(null);
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openEvent(event) {
     setSelectedEvent(event);
     setView("details");
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -725,6 +830,7 @@ function App() {
     <div className="app-shell">
       <header className="navbar">
         <Brand onClick={goHome} />
+
         <nav className="nav-links" aria-label="Main navigation">
           <button
             className={view === "home" ? "nav-active" : ""}
@@ -732,6 +838,7 @@ function App() {
           >
             Discover
           </button>
+
           <button
             onClick={() => {
               goHome();
@@ -742,6 +849,7 @@ function App() {
           >
             Explore Events
           </button>
+
           <button
             onClick={() => {
               goHome();
@@ -753,6 +861,7 @@ function App() {
             About
           </button>
         </nav>
+
         <div className="nav-actions">
           {user ? (
             <>
@@ -763,13 +872,18 @@ function App() {
               >
                 My bookings
               </button>
-              <button
-                className="primary-button nav-cta"
-                type="button"
-                onClick={openDashboard}
-              >
-                Organizer hub ↗
-              </button>
+
+              {/* Organizer navigation is rendered only for organizer accounts. */}
+              {isOrganizer && (
+                <button
+                  className="primary-button nav-cta"
+                  type="button"
+                  onClick={openDashboard}
+                >
+                  Organizer hub ↗
+                </button>
+              )}
+
               <button className="login-button" type="button" onClick={logout}>
                 Log out
               </button>
@@ -786,6 +900,7 @@ function App() {
               >
                 Log in
               </button>
+
               <button
                 className="primary-button nav-cta"
                 type="button"
@@ -820,6 +935,7 @@ function App() {
             >
               ← Back to events
             </button>
+
             <div className="detail-layout">
               <div>
                 <div
@@ -828,11 +944,14 @@ function App() {
                   <span className="event-category">
                     {selectedEvent.category}
                   </span>
+
                   <span className="detail-art-symbol">
                     {getEventStyle(selectedEvent.category).icon}
                   </span>
+
                   <span className="event-art-index">EVENT / FEATURED</span>
                 </div>
+
                 <div className="detail-copy">
                   <span className="section-kicker">THE EXPERIENCE</span>
                   <h1>{selectedEvent.title}</h1>
@@ -842,19 +961,23 @@ function App() {
                   </p>
                 </div>
               </div>
+
               <aside className="panel booking-panel">
                 <span className="section-kicker">EVENT DETAILS</span>
                 <h2>Make it a date.</h2>
+
                 <div className="detail-fact">
                   <span>Date</span>
                   <strong>
                     {formatDate(selectedEvent.date, { month: "long" })}
                   </strong>
                 </div>
+
                 <div className="detail-fact">
                   <span>Venue</span>
                   <strong>{selectedEvent.venue || "To be announced"}</strong>
                 </div>
+
                 <div className="detail-fact">
                   <span>Organizer</span>
                   <strong>
@@ -863,6 +986,7 @@ function App() {
                       "Event organizer"}
                   </strong>
                 </div>
+
                 <div className="detail-fact">
                   <span>Seats available</span>
                   <strong>
@@ -870,6 +994,7 @@ function App() {
                     {selectedEvent.totalSeats ?? "—"}
                   </strong>
                 </div>
+
                 <button
                   className="primary-button full-width"
                   type="button"
@@ -886,6 +1011,7 @@ function App() {
                       ? "Sold out"
                       : "Book this event ↗"}
                 </button>
+
                 <p className="fine-print">
                   Booking availability is confirmed by the server.
                 </p>
@@ -902,15 +1028,18 @@ function App() {
                   <span className="status-dot" /> YOUR NEXT GREAT EXPERIENCE
                   STARTS HERE
                 </div>
+
                 <h1>
                   Find your people.
                   <br />
                   <span>Find your event.</span>
                 </h1>
+
                 <p className="hero-description">
                   Discover experiences that inspire you, connect you with your
                   community, and turn ordinary days into something memorable.
                 </p>
+
                 <div className="hero-actions">
                   <button
                     className="primary-button hero-cta"
@@ -922,6 +1051,7 @@ function App() {
                   >
                     Explore events <span>↗</span>
                   </button>
+
                   <button
                     className="secondary-button"
                     onClick={() =>
@@ -933,6 +1063,7 @@ function App() {
                     How it works <span>→</span>
                   </button>
                 </div>
+
                 <div className="social-proof">
                   <div className="avatar-stack" aria-label="Community members">
                     <span>R</span>
@@ -940,18 +1071,21 @@ function App() {
                     <span>M</span>
                     <span>S</span>
                   </div>
+
                   <div>
                     <strong>Built for curious minds</strong>
                     <p>Discover. Connect. Experience.</p>
                   </div>
                 </div>
               </div>
+
               <div
                 className="hero-visual"
                 aria-label="Event discovery illustration"
               >
                 <div className="visual-orbit orbit-one" />
                 <div className="visual-orbit orbit-two" />
+
                 <div className="floating-tag tag-top">
                   <span className="tag-icon">✦</span>
                   <div>
@@ -959,6 +1093,7 @@ function App() {
                     <small>Something new awaits</small>
                   </div>
                 </div>
+
                 <div className="hero-art">
                   <div className="art-glow" />
                   <div className="art-circle circle-back" />
@@ -968,11 +1103,13 @@ function App() {
                   <span className="art-star star-one">✦</span>
                   <span className="art-star star-two">✳</span>
                   <span className="art-star star-three">✦</span>
+
                   <div className="art-caption">
                     <span>01 / DISCOVER</span>
                     <span>THE POSSIBILITIES</span>
                   </div>
                 </div>
+
                 <div className="floating-tag tag-bottom">
                   <span className="online-indicator" />
                   <div>
@@ -1006,11 +1143,13 @@ function App() {
                   <h2>Something worth showing up for.</h2>
                   <p>Explore experiences designed to bring people together.</p>
                 </div>
+
                 <span className="live-count">
                   {events.length} live{" "}
                   {events.length === 1 ? "event" : "events"}
                 </span>
               </div>
+
               <div className="event-toolbar">
                 <label className="search-box">
                   <span>⌕</span>
@@ -1021,6 +1160,7 @@ function App() {
                     aria-label="Search events"
                   />
                 </label>
+
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
@@ -1030,6 +1170,7 @@ function App() {
                     <option key={category}>{category}</option>
                   ))}
                 </select>
+
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
@@ -1039,6 +1180,7 @@ function App() {
                   <option value="title">Title A–Z</option>
                   <option value="seats">Most seats</option>
                 </select>
+
                 <button
                   className="secondary-button refresh-button"
                   onClick={loadEvents}
@@ -1055,6 +1197,7 @@ function App() {
                   <p>Finding the next experience for you.</p>
                 </div>
               )}
+
               {!loadingEvents && eventsError && (
                 <div className="state-card state-error">
                   <strong>We couldn't load events.</strong>
@@ -1064,6 +1207,7 @@ function App() {
                   </button>
                 </div>
               )}
+
               {!loadingEvents &&
                 !eventsError &&
                 filteredEvents.length === 0 && (
@@ -1073,11 +1217,13 @@ function App() {
                         ? "No matching events"
                         : "The calendar is waiting."}
                     </strong>
+
                     <p>
                       {events.length
                         ? "Try another search or category."
                         : "No upcoming events yet. Check back soon!"}
                     </p>
+
                     {(search || categoryFilter !== "All categories") && (
                       <button
                         className="secondary-button"
@@ -1091,6 +1237,7 @@ function App() {
                     )}
                   </div>
                 )}
+
               {!loadingEvents && !eventsError && filteredEvents.length > 0 && (
                 <div className="event-grid">
                   {filteredEvents.map((event, index) => (
@@ -1113,6 +1260,7 @@ function App() {
                 <h2>Make room for something new.</h2>
                 <p>Your next memorable experience is one discovery away.</p>
               </div>
+
               <button
                 className="primary-button"
                 onClick={() =>
@@ -1135,19 +1283,23 @@ function App() {
                 <h2>My bookings</h2>
                 <p>Keep your upcoming plans in one place.</p>
               </div>
+
               <button className="secondary-button" onClick={goHome}>
                 ← Discover events
               </button>
             </div>
+
             {dashboardLoading && (
               <div className="state-card">
                 <span className="spinner" />
                 <strong>Loading bookings...</strong>
               </div>
             )}
+
             {!dashboardLoading && dashboardError && (
               <div className="notice notice-error">{dashboardError}</div>
             )}
+
             {!dashboardLoading &&
               !dashboardError &&
               myBookings.length === 0 && (
@@ -1159,25 +1311,39 @@ function App() {
                   </button>
                 </div>
               )}
+
             {!dashboardLoading && !dashboardError && myBookings.length > 0 && (
               <div className="stack-list">
                 {myBookings.map((booking) => {
                   const event = booking.event || booking.eventId || {};
                   const status =
                     booking.bookingStatus || booking.status || "Confirmed";
+
                   return (
                     <article className="list-card" key={booking._id}>
                       <div>
-                        <span className="section-kicker">{status}</span>
+                        <span
+                          className={`booking-status ${
+                            status === "Cancelled"
+                              ? "booking-status-cancelled"
+                              : "booking-status-confirmed"
+                          }`}
+                        >
+                          {status}
+                        </span>
+
                         <h3>
                           {event.title || booking.eventTitle || "Event booking"}
                         </h3>
+
                         <p>
                           {event.venue || booking.venue || "Venue unavailable"}{" "}
                           · {formatDate(event.date || booking.eventDate)}
                         </p>
+
                         <small>Booking ID: {booking._id}</small>
                       </div>
+
                       {status === "Confirmed" && (
                         <button
                           className="danger-button"
@@ -1195,7 +1361,8 @@ function App() {
           </section>
         )}
 
-        {view === "dashboard" && (
+        {/* Only organizer accounts can render the organizer workspace. */}
+        {view === "dashboard" && isOrganizer && (
           <section className="events-section dashboard-section">
             <div className="section-heading">
               <div>
@@ -1203,6 +1370,7 @@ function App() {
                 <h2>Your events, in one place.</h2>
                 <p>Create, update and manage events you organize.</p>
               </div>
+
               <button
                 className="primary-button"
                 onClick={() => {
@@ -1213,12 +1381,14 @@ function App() {
                 ＋ Create event
               </button>
             </div>
+
             {dashboardLoading && (
               <div className="state-card">
                 <span className="spinner" />
                 <strong>Loading organizer hub...</strong>
               </div>
             )}
+
             {!dashboardLoading && dashboardError && (
               <div className="state-card state-error">
                 <strong>Organizer data couldn't load.</strong>
@@ -1228,22 +1398,26 @@ function App() {
                 </button>
               </div>
             )}
+
             {!dashboardLoading && !dashboardError && (
               <div className="stat-cards">
                 <div className="panel">
                   <span>Total events</span>
                   <strong>{stats.totalEvents}</strong>
                 </div>
+
                 <div className="panel">
                   <span>Total capacity</span>
                   <strong>{stats.totalSeats}</strong>
                 </div>
+
                 <div className="panel">
                   <span>Seats available</span>
                   <strong>{stats.availableSeats}</strong>
                 </div>
               </div>
             )}
+
             {showEventForm && (
               <EventForm
                 initialEvent={editingEvent}
@@ -1255,6 +1429,7 @@ function App() {
                 busy={savingEvent}
               />
             )}
+
             {!dashboardLoading &&
               !dashboardError &&
               !showEventForm &&
@@ -1262,6 +1437,7 @@ function App() {
                 <div className="state-card">
                   <strong>Your organizer journey starts here.</strong>
                   <p>You haven't created an event yet.</p>
+
                   <button
                     className="primary-button"
                     onClick={() => setShowEventForm(true)}
@@ -1270,21 +1446,26 @@ function App() {
                   </button>
                 </div>
               )}
+
             {!dashboardLoading && !dashboardError && myEvents.length > 0 && (
               <div className="stack-list">
                 {myEvents.map((event) => (
                   <article className="list-card" key={event._id}>
                     <div>
                       <span className="section-kicker">{event.category}</span>
+
                       <h3>{event.title}</h3>
+
                       <p>
                         {event.venue} · {formatDate(event.date)}
                       </p>
+
                       <small>
                         {event.availableSeats} of {event.totalSeats} seats
                         available
                       </small>
                     </div>
+
                     <div className="list-actions">
                       <button
                         className="secondary-button"
@@ -1295,6 +1476,7 @@ function App() {
                       >
                         Edit
                       </button>
+
                       <button
                         className="danger-button"
                         onClick={() => deleteEvent(event)}
@@ -1309,6 +1491,19 @@ function App() {
             )}
           </section>
         )}
+
+        {/* Defensive fallback if a non-organizer somehow reaches this view. */}
+        {view === "dashboard" && !isOrganizer && (
+          <section className="events-section dashboard-section">
+            <div className="state-card">
+              <strong>Organizer access required.</strong>
+              <p>This workspace is available only to organizer accounts.</p>
+              <button className="primary-button" onClick={goHome}>
+                Back to Discover ↗
+              </button>
+            </div>
+          </section>
+        )}
       </main>
 
       <footer className="footer">
@@ -1316,6 +1511,7 @@ function App() {
         <p>Built for experiences that bring us together.</p>
         <span>© {new Date().getFullYear()} EventOps</span>
       </footer>
+
       {toast && (
         <div className="toast" role="status">
           {toast}

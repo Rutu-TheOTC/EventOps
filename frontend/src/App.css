@@ -1431,3 +1431,29 @@ select {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Booking history status labels */
+.booking-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.booking-status-confirmed {
+  border-color: rgba(107, 212, 164, 0.25);
+  color: #79d8ad;
+  background: rgba(107, 212, 164, 0.09);
+}
+
+.booking-status-cancelled {
+  border-color: rgba(242, 139, 145, 0.25);
+  color: #f28b91;
+  background: rgba(242, 139, 145, 0.09);
+}

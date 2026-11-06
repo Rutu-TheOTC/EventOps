@@ -3,40 +3,65 @@ const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 
 /*
-----------
-Register User
-
-Creates a new user account.
-Password hashing is NOT done because the User model handles it
-automatically using the pre("save") middleware.
-----------
+|--------------------------------------------------------------------------
+| Register User
+|--------------------------------------------------------------------------
+| Public registration always creates an attendee. The role sent by a client
+| is deliberately ignored so a visitor cannot register as an organizer/admin.
 */
 
 const registerUser = async (req, res) => {
-    try{
-        const { fullName, email, password, role } = req.body;
+    try {
+        const fullName = typeof req.body.fullName === "string"
+            ? req.body.fullName.trim()
+            : "";
+        const email = typeof req.body.email === "string"
+            ? req.body.email.trim().toLowerCase()
+            : "";
+        const password = typeof req.body.password === "string"
+            ? req.body.password
+            : "";
 
-        //Check if an account already exists with this email.
-        const existingUser = await User.findOne({ email });
-
-        if(existingUser){
+        if (!fullName || !email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "User already exists",
+                message: "Full name, email and password are required.",
             });
         }
 
-        //Create a new user document
+        if (fullName.length < 2 || fullName.length > 80) {
+            return res.status(400).json({
+                success: false,
+                message: "Full name must be between 2 and 80 characters.",
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must contain at least 6 characters.",
+            });
+        }
+
+        const existingUser = await User.findOne({ email });
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: "An account with this email already exists.",
+            });
+        }
+
         const user = await User.create({
             fullName,
             email,
             password,
-            role,
+            role: "attendee",
         });
-        
-        res.status(201).json({
+
+        return res.status(201).json({
             success: true,
-            message: "User registered successfully",
+            message: "User registered successfully.",
             data: {
                 id: user._id,
                 fullName: user.fullName,
@@ -44,69 +69,76 @@ const registerUser = async (req, res) => {
                 role: user.role,
             },
         });
-    } catch(error){
-        console.error("Register Error:",error.message);
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "An account with this email already exists.",
+            });
+        }
 
-        res.status(500).json({
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+
+        console.error("Register Error:", error.message);
+
+        return res.status(500).json({
             success: false,
-            message: "Internal Server Error",
+            message: "Internal Server Error.",
         });
     }
 };
 
 /*
-------------
-Login User
-
-Verifies email & password.
-If both are correct, a JWT Token is generated and returned.
-------------
+|--------------------------------------------------------------------------
+| Login User
+|--------------------------------------------------------------------------
 */
 
 const loginUser = async (req, res) => {
-    try{
-        const { email, password } = req.body;
+    try {
+        const email = typeof req.body.email === "string"
+            ? req.body.email.trim().toLowerCase()
+            : "";
+        const password = typeof req.body.password === "string"
+            ? req.body.password
+            : "";
 
-        //Check for empty fields
-        if(!email || !password){
+        if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required",
+                message: "Email and password are required.",
             });
         }
 
-        //Find User and explicitely include password
-        //password has "select: false" in our schema.
         const user = await User.findOne({ email }).select("+password");
 
-        if(!user){
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password.",
             });
         }
 
-        //Compare entered password with hashed password.
-        const isPasswordMatched = await bcrypt.compare(
-            password,
-            user.password
-        );
+        const isPasswordMatched = await bcrypt.compare(password, user.password);
 
-        if(!isPasswordMatched){
+        if (!isPasswordMatched) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password.",
             });
         }
 
-        //Generate JWT Token 
         const token = generateToken(user._id);
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            message: "Login Successful.",
+            message: "Login successful.",
             token,
-
             user: {
                 id: user._id,
                 fullName: user.fullName,
@@ -114,27 +146,24 @@ const loginUser = async (req, res) => {
                 role: user.role,
             },
         });
-    } catch(error){
+    } catch (error) {
         console.error("Login Error:", error.message);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: "Internal Server Error",
+            message: "Internal Server Error.",
         });
     }
 };
 
 /*
-----------------------
-Get Logged-in User Profile
-
-Returns the profile of the currently authenticated user.
-The user information comes from authMiddleware (req.user).
-----------------------
+|--------------------------------------------------------------------------
+| Get Logged-in User Profile
+|--------------------------------------------------------------------------
 */
 
 const getMyProfile = async (req, res) => {
-    res.status(200).json({
+    return res.status(200).json({
         success: true,
         message: "Profile fetched successfully.",
         user: req.user,

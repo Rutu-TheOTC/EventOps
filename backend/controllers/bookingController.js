@@ -1,149 +1,272 @@
+const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
 const Event = require("../models/Event");
 
-/*
-----------
-Book Event Controller
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-Allows an authenticated attendee to book an event. 
-----------
+/*
+|--------------------------------------------------------------------------
+| Book Event
+|--------------------------------------------------------------------------
+| The event seat decrement and booking insert run in one transaction.
+| The event update itself is conditional, so the last seat cannot be sold
+| twice by simultaneous requests.
 */
 
 const bookEvent = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
-    const event = await Event.findById(req.params.id);
+    const eventId = req.params.id || req.body.eventId;
 
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: "Event not found",
-      });
-    }
-
-    //Prevent Overbooking
-    if (event.availableSeats <= 0) {
+    if (!eventId || !isValidObjectId(eventId)) {
       return res.status(400).json({
         success: false,
-        message: "No seats available.",
+        message: "A valid eventId is required.",
       });
     }
 
-    //Prevent Duplicate Booking
-    const existingBooking = await Booking.findOne({
-      attendee: req.user._id,
-      event: event._id,
-      bookingStatus: "Confirmed",
+    let outcome = "created";
+    let createdBooking = null;
+
+    await session.withTransaction(async () => {
+      const existingBooking = await Booking.findOne({
+        attendee: req.user._id,
+        event: eventId,
+        bookingStatus: "Confirmed",
+      }).session(session);
+
+      if (existingBooking) {
+        outcome = "duplicate";
+        return;
+      }
+
+      const event = await Event.findOneAndUpdate(
+        {
+          _id: eventId,
+          date: { $gt: new Date() },
+          availableSeats: { $gt: 0 },
+        },
+        {
+          $inc: { availableSeats: -1 },
+        },
+        {
+          new: true,
+          runValidators: true,
+          session,
+        },
+      );
+
+      if (!event) {
+        const existingEvent = await Event.findById(eventId).session(session);
+
+        if (!existingEvent) {
+          outcome = "event-not-found";
+        } else if (existingEvent.date <= new Date()) {
+          outcome = "event-closed";
+        } else {
+          outcome = "sold-out";
+        }
+
+        return;
+      }
+
+      const bookings = await Booking.create(
+        [
+          {
+            attendee: req.user._id,
+            event: event._id,
+            bookingStatus: "Confirmed",
+          },
+        ],
+        { session },
+      );
+
+      createdBooking = bookings[0];
     });
 
-    if (existingBooking) {
-      return res.status(400).json({
+    if (outcome === "duplicate") {
+      return res.status(409).json({
         success: false,
         message: "You have already booked this event.",
       });
     }
 
-    //Create Booking
-    const booking = await Booking.create({
-      attendee: req.user._id,
-      event: event._id,
-    });
+    if (outcome === "event-not-found") {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found.",
+      });
+    }
 
-    //Reduce Available Seats
-    event.availableSeats -= 1;
-    await event.save();
-    res.status(201).json({
+    if (outcome === "event-closed") {
+      return res.status(400).json({
+        success: false,
+        message: "This event is no longer open for booking.",
+      });
+    }
+
+    if (outcome === "sold-out") {
+      return res.status(409).json({
+        success: false,
+        message: "No seats are available for this event.",
+      });
+    }
+
+    return res.status(201).json({
       success: true,
       message: "Event booked successfully.",
-      booking,
+      booking: createdBooking,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "You already have a confirmed booking for this event.",
+      });
+    }
+
+    console.error("Book Event Error:", error.message);
+
+    return res.status(500).json({
       success: false,
-      message: "Server Error",
+      message: "Unable to complete the booking. Please try again.",
     });
+  } finally {
+    await session.endSession();
   }
 };
 
 /*
----------------
-Get My Bookings Controller
-
-Returns all bookings of the logged-in attendee.
----------------
+|--------------------------------------------------------------------------
+| Get My Bookings
+|--------------------------------------------------------------------------
+| Returns the attendee's complete booking history, including both
+| Confirmed and Cancelled bookings.
 */
 
 const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
       attendee: req.user._id,
-      bookingStatus: "Confirmed",
-    }).populate("event");
+    })
+      .sort({ createdAt: -1 })
+      .populate("event");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: bookings.length,
       bookings,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Get My Bookings Error:", error.message);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Server Error",
+      message: "Server Error.",
     });
   }
 };
 
 /*
----------------
-Cancel Booking Controller
-
-Allows an attendee to cancel their booking and restores the seat.
----------------
+|--------------------------------------------------------------------------
+| Cancel Booking
+|--------------------------------------------------------------------------
+| The booking status change and seat restoration are one transaction.
+| The status condition prevents a repeated cancellation from restoring
+| another seat.
 */
 
 const cancelBooking = async (req, res) => {
-  try {
-    const booking = await Booking.findById(req.params.id);
+  const session = await mongoose.startSession();
 
-    if (!booking) {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Booking ID.",
+      });
+    }
+
+    let outcome = "cancelled";
+
+    await session.withTransaction(async () => {
+      const booking = await Booking.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          attendee: req.user._id,
+          bookingStatus: "Confirmed",
+        },
+        {
+          $set: { bookingStatus: "Cancelled" },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+
+      if (!booking) {
+        const existingBooking = await Booking.findById(req.params.id).session(
+          session,
+        );
+
+        if (!existingBooking) {
+          outcome = "not-found";
+        } else if (
+          existingBooking.attendee.toString() !== req.user._id.toString()
+        ) {
+          outcome = "forbidden";
+        } else {
+          outcome = "already-cancelled";
+        }
+
+        return;
+      }
+
+      const event = await Event.findOneAndUpdate(
+        {
+          _id: booking.event,
+          $expr: { $lt: ["$availableSeats", "$totalSeats"] },
+        },
+        {
+          $inc: { availableSeats: 1 },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+
+      if (!event) {
+        throw new Error(
+          "The event could not be found or its seat capacity is inconsistent.",
+        );
+      }
+    });
+
+    if (outcome === "not-found") {
       return res.status(404).json({
         success: false,
         message: "Booking not found.",
       });
     }
 
-    //Ensure the logged-in attendee owns this booking.
-    if (booking.attendee.toString() !== req.user._id.toString()) {
+    if (outcome === "forbidden") {
       return res.status(403).json({
         success: false,
-        message: "You are not authorzed to cancel this booking",
+        message: "You are not authorized to cancel this booking.",
       });
     }
 
-    if (booking.bookingStatus !== "Confirmed") {
-      return res.status(400).json({
+    if (outcome === "already-cancelled") {
+      return res.status(409).json({
         success: false,
-        message: "This booking is already cancelled or is not active.",
+        message: "This booking has already been cancelled.",
       });
     }
 
-    //Restore one available seat.
-
-    const event = await Event.findById(booking.event);
-
-    if (event) {
-      event.availableSeats += 1;
-      await event.save();
-    }
-
-    //Mark the booking as cancelled.
-    booking.bookingStatus = "Cancelled";
-
-    await booking.save();
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Booking cancelled successfully.",
     });
@@ -152,8 +275,11 @@ const cancelBooking = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Server Error",
+      message:
+        "Unable to cancel the booking. No booking or seat changes were committed.",
     });
+  } finally {
+    await session.endSession();
   }
 };
 

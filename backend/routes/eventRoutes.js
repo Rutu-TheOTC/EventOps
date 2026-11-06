@@ -1,9 +1,8 @@
 const express = require("express");
-
 const router = express.Router();
 
-const { 
-    createEvent, 
+const {
+    createEvent,
     getAllEvents,
     searchEvents,
     filterEventsByCategory,
@@ -15,44 +14,24 @@ const {
     deleteEvent,
 } = require("../controllers/eventController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect, organizerOnly } = require("../middleware/authMiddleware");
 
-//Get all events
+// Public event discovery routes.
 router.get("/", getAllEvents);
-
-//Search events by title or category
 router.get("/search", searchEvents);
-
-//Filter events by category
 router.get("/filter", filterEventsByCategory);
-
-//Get paginated events
 router.get("/paginate", getPaginatedEvents);
 
-//Get all events created by the logged-in organizer
-router.get("/my-events", protect, getMyEvents);
+// Specific organizer routes must be registered before the /:id route.
+router.get("/my-events", protect, organizerOnly, getMyEvents);
+router.get("/stats", protect, organizerOnly, getOrganizerStats);
 
-//Organizer Dashboard Statistics
-router.get("/stats", protect, getOrganizerStats);
-
-/*
----------
-Event Routes
-
-All event-related endpoints are defined here.
----------
-*/
-
-//Get a single event by ID
+// Public single-event route comes after the named routes.
 router.get("/:id", getSingleEvent);
 
-//Create a new event (Only authenticated users)
-router.post("/", protect, createEvent);
-
-//Update an event
-router.put("/:id", protect, updateEvent);
-
-//Delete an event
-router.delete("/:id", protect, deleteEvent);
+// Organizer-only write routes.
+router.post("/", protect, organizerOnly, createEvent);
+router.put("/:id", protect, organizerOnly, updateEvent);
+router.delete("/:id", protect, organizerOnly, deleteEvent);
 
 module.exports = router;
