@@ -68,6 +68,16 @@ async function apiRequest(path, options = {}) {
   return data;
 }
 
+async function fetchEvents() {
+  const data = await apiRequest("/api/events");
+
+  if (!data.success || !Array.isArray(data.events)) {
+    throw new Error("The server returned an unexpected events response.");
+  }
+
+  return data.events;
+}
+
 function formatDate(value, options = {}) {
   if (!value) return "Date to be announced";
 
@@ -555,13 +565,8 @@ function App() {
     setEventsError("");
 
     try {
-      const data = await apiRequest("/api/events");
-
-      if (!data.success || !Array.isArray(data.events)) {
-        throw new Error("The server returned an unexpected events response.");
-      }
-
-      setEvents(data.events);
+      const eventData = await fetchEvents();
+      setEvents(eventData);
     } catch (error) {
       setEventsError(error.message || "Unable to load events.");
     } finally {
@@ -570,8 +575,32 @@ function App() {
   }, []);
 
   useEffect(() => {
-    loadEvents();
-  }, [loadEvents]);
+    let isActive = true;
+
+    async function loadInitialEvents() {
+      try {
+        const eventData = await fetchEvents();
+
+        if (isActive) {
+          setEvents(eventData);
+        }
+      } catch (error) {
+        if (isActive) {
+          setEventsError(error.message || "Unable to load events.");
+        }
+      } finally {
+        if (isActive) {
+          setLoadingEvents(false);
+        }
+      }
+    }
+
+    loadInitialEvents();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
