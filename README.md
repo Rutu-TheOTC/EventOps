@@ -94,12 +94,10 @@ EventOps/
 ### 1. Clone the repository
 
 ``` bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/Rutu-TheOTC/EventOps.git
 cd EventOps
 ```
 
-Replace the placeholder with the GitHub repository URL after the
-repository has been created.
 
 ### 2. Configure the backend
 
