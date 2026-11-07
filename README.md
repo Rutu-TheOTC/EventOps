@@ -4,6 +4,31 @@
 MERN stack. It provides public event discovery, role-protected event
 management for organizers, and booking workflows for attendees.
 
+## Application screenshots
+
+### Homepage
+
+The EventOps landing page introduces the platform and its event-discovery experience.
+
+![EventOps homepage](docs/screenshots/homepage.png)
+
+### Event discovery
+
+Browse events, search by title or venue, filter by category, and see availability at a glance.
+
+![Event discovery page](docs/screenshots/event-discovery.png)
+
+### Event details and booking
+
+View event information, organizer details, available seats, and the booking action.
+
+![Event details page](docs/screenshots/event-details.png)
+
+> The screenshots above are stored in `docs/screenshots/` in this repository.
+> The organizer workspace screenshot is also included in that folder and can
+> be added to this gallery after capturing it with representative event data.
+
+
 ## Features
 
 ### Authentication and access control
