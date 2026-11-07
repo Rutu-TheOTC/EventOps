@@ -52,7 +52,7 @@ async function apiRequest(path, options = {}) {
     response = await fetch(`${API_URL}${path}`, { ...options, headers });
   } catch {
     throw new Error(
-      "Cannot connect to the EventOps server. Check that the backend is running on port 5000.",
+      "Cannot connect to the EventOps server. Please try again later.",
     );
   }
 
